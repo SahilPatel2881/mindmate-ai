@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindMate AI - Your Mental Wellness Companion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <h1>🧠 MindMate AI</h1>
+                <p class="tagline">Your compassionate mental wellness companion</p>
+            </div>
+            <div class="user-info">
+                <input type="text" id="user-name" placeholder="Your name..." maxlength="20">
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div class="chat-container">
+            <div id="chat-messages" class="chat-messages">
+                <!-- Messages will appear here -->
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-area">
+            <div class="input-container">
+                <input type="text" id="user-input" placeholder="Share how you're feeling or what's on your mind..." autocomplete="off">
+                <button id="send-btn" onclick="sendMessage()">
+                    <span>Send</span>
+                </button>
+            </div>
+            <div class="quick-actions">
+                <button class="quick-btn" onclick="quickAction('technique')">🛠️ Get Technique</button>
+                <button class="quick-btn" onclick="quickAction('anxious')">😰 Feeling Anxious</button>
+                <button class="quick-btn" onclick="quickAction('sad')">😔 Feeling Sad</button>
+                <button class="quick-btn" onclick="quickAction('happy')">😊 Feeling Good</button>
+            </div>
+        </div>
+
+        <!-- Safety Notice -->
+        <div class="safety-notice">
+            <p>💡 <strong>Important:</strong> MindMate AI provides support but is not a replacement for professional help. 
+            If you're in crisis, please contact emergency services or a mental health professional.</p>
+        </div>
+    </div>
+
+    <script>
+        let userName = 'Friend';
+        let userId = 'user_' + Math.random().toString(36).substr(2, 9);
+
+        // Initialize chat with welcome message
+        window.onload = function() {
+            setTimeout(() => {
+                addMessage('ai', 'Hello! I am MindMate AI, your mental wellness companion. 🌟<br><br>I\'m here to listen, support, and provide helpful techniques. You can share your feelings, ask for techniques, or use the quick buttons above.<br><br>To start, what should I call you?');
+            }, 500);
+
+            // Set up user name
+            const nameInput = document.getElementById('user-name');
+            nameInput.addEventListener('input', function(e) {
+                userName = e.target.value || 'Friend';
+            });
+
+            // Enter key to send message
+            document.getElementById('user-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Auto-focus input field
+            document.getElementById('user-input').focus();
+        };
+
+        function addMessage(sender, message) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message`;
+            
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">${message}</div>
+                <div class="message-time">${timestamp}</div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const chatMessages = document.getElementById('chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'message ai-message typing';
+            typingDiv.innerHTML = '<div class="message-content">MindMate AI is thinking...</div>';
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        async function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const message = userInput.value.trim();
+            
+            if (message) {
+                // Add user message
+                addMessage('user', message);
+                userInput.value = '';
+                
+                // Show typing indicator
+                showTypingIndicator();
+                
+                try {
+                    const response = await fetch('/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            user_id: userId,
+                            name: userName
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    // Remove typing indicator
+                    removeTypingIndicator();
+                    
+                    // Update user name if returned
+                    if (data.user_name && data.user_name !== userName) {
+                        userName = data.user_name;
+                        document.getElementById('user-name').value = userName;
+                    }
+                    
+                    // Add AI response
+                    addMessage('ai', data.response.replace(/\n/g, '<br>'));
+                    
+                } catch (error) {
+                    removeTypingIndicator();
+                    addMessage('ai', 'I apologize, but I\'m having trouble responding right now. Please try again.');
+                    console.error('Error:', error);
+                }
+            }
+        }
+
+        function quickAction(action) {
+            let message = '';
+            switch(action) {
+                case 'technique':
+                    message = 'Please share a mental wellness technique';
+                    break;
+                case 'anxious':
+                    message = 'I\'m feeling anxious and stressed';
+                    break;
+                case 'sad':
+                    message = 'I\'m feeling sad and down';
+                    break;
+                case 'happy':
+                    message = 'I\'m feeling happy and good today';
+                    break;
+            }
+            
+            document.getElementById('user-input').value = message;
+            sendMessage();
+        }
+
+        // Auto-focus input field when clicking anywhere
+        document.addEventListener('click', function() {
+            document.getElementById('user-input').focus();
+        });
+    </script>
+</body>
+</html>
